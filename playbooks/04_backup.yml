@@ -1,0 +1,25 @@
+---
+- name: Respaldar configuraciones y cifrarlas
+  hosts: cisco_routers
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  vars:
+    backup_dir: "../backups/{{ lookup('pipe', 'date +%Y-%m-%d_%H%M') }}"
+
+  tasks:
+    - name: Descargar running-config de cada router
+      ios_config:
+        backup: true
+        backup_options:
+          dir_path: "{{ backup_dir }}"
+          filename: "{{ inventory_hostname }}.cfg"
+
+    - name: Cifrar el backup con ansible-vault (AES256)
+      ansible.builtin.command:
+        cmd: >
+          ansible-vault encrypt {{ backup_dir }}/{{ inventory_hostname }}.cfg
+          --vault-password-file ../.vault_pass
+      delegate_to: localhost
+      changed_when: true

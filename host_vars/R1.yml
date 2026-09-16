@@ -1,0 +1,25 @@
+---
+hostname: R1
+loopback0_ipv4: 10.255.255.1/32
+loopback0_ipv6: 2001:db8:ffff::1/128
+interfaces:
+- name: GigabitEthernet0/1
+  description: Enlace a R2 (link 1)
+  ipv4_address: 10.0.1.1
+  ipv4_mask: 255.255.255.252
+  ipv6_address: 2001:db8:1::1/64
+- name: GigabitEthernet0/2
+  description: Enlace a R4 (link 4)
+  ipv4_address: 10.0.4.1
+  ipv4_mask: 255.255.255.252
+  ipv6_address: 2001:db8:4::1/64
+- name: GigabitEthernet0/3
+  description: Enlace a R3 (link 5)
+  ipv4_address: 10.0.5.1
+  ipv4_mask: 255.255.255.252
+  ipv6_address: 2001:db8:5::1/64
+- name: GigabitEthernet0/4
+  description: Enlace a R5 (link 6)
+  ipv4_address: 10.0.6.2
+  ipv4_mask: 255.255.255.252
+  ipv6_address: 2001:db8:6::2/64

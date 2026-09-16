@@ -1,0 +1,25 @@
+---
+all:
+  children:
+    cisco_routers:
+      hosts:
+        R1:
+          ansible_host: 192.168.100.11
+        R2:
+          ansible_host: 192.168.100.12
+        R3:
+          ansible_host: 192.168.100.13
+        R4:
+          ansible_host: 192.168.100.14
+        R5:
+          ansible_host: 192.168.100.15
+        R6:
+          ansible_host: 192.168.100.16
+        R7:
+          ansible_host: 192.168.100.17
+        R8:
+          ansible_host: 192.168.100.18
+        R9:
+          ansible_host: 192.168.100.19
+        R10:
+          ansible_host: 192.168.100.20

@@ -1,0 +1,8 @@
+---
+# Ejecuta toda la automatización en el orden correcto.
+# Requiere que el bootstrap manual (00_bootstrap_manual.md) ya esté hecho
+# en los 10 routers (SSH habilitado y alcanzable).
+- import_playbook: playbooks/01_interfaces.yml
+- import_playbook: playbooks/02_ospf.yml
+- import_playbook: playbooks/03_security.yml
+- import_playbook: playbooks/04_backup.yml

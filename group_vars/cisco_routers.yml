@@ -1,0 +1,14 @@
+---
+ansible_network_os: ios
+ansible_connection: network_cli
+ansible_user: admin
+# La contraseña se guarda cifrada con ansible-vault, no en texto plano.
+# Crear el vault con:  ansible-vault create group_vars/vault.yml
+# y dentro poner:      vault_admin_password: "Admin123!"
+ansible_password: "{{ vault_admin_password }}"
+ansible_become: true
+ansible_become_method: enable
+ansible_become_password: "{{ vault_admin_password }}"
+
+ospf_process_id: 1
+ospf_area: 0

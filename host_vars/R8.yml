@@ -1,0 +1,10 @@
+---
+hostname: R8
+loopback0_ipv4: 10.255.255.8/32
+loopback0_ipv6: 2001:db8:ffff::8/128
+interfaces:
+- name: GigabitEthernet0/1
+  description: Enlace a R5 (link 12)
+  ipv4_address: 10.0.12.1
+  ipv4_mask: 255.255.255.252
+  ipv6_address: 2001:db8:12::1/64

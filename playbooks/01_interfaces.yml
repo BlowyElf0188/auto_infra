@@ -1,0 +1,45 @@
+---
+- name: Configurar hostname, loopback e interfaces IPv4/IPv6
+  hosts: cisco_routers
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  tasks:
+    - name: Configurar hostname
+      ios_config:
+        lines:
+          - "hostname {{ hostname }}"
+
+    - name: Configurar Loopback0 (IPv4)
+      ios_config:
+        lines:
+          - "ip address {{ loopback0_ipv4.split('/')[0] }} 255.255.255.255"
+        parents: "interface Loopback0"
+
+    - name: Configurar Loopback0 (IPv6)
+      ios_config:
+        lines:
+          - "ipv6 address {{ loopback0_ipv6 }}"
+        parents: "interface Loopback0"
+
+    - name: Habilitar reenvío IPv6 unicast (necesario para OSPFv3)
+      ios_config:
+        lines:
+          - "ipv6 unicast-routing"
+
+    - name: Configurar interfaces punto a punto (IPv4 + IPv6)
+      ios_config:
+        lines:
+          - "description {{ item.description }}"
+          - "ip address {{ item.ipv4_address }} {{ item.ipv4_mask }}"
+          - "ipv6 address {{ item.ipv6_address }}"
+          - "no shutdown"
+        parents: "interface {{ item.name }}"
+      loop: "{{ interfaces }}"
+      loop_control:
+        label: "{{ item.name }} -> {{ item.description }}"
+
+    - name: Guardar configuración
+      ios_config:
+        save_when: modified

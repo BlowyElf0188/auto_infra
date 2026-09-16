@@ -1,0 +1,53 @@
+---
+- name: Habilitar OSPFv2 (IPv4) y OSPFv3 (IPv6) en área 0
+  hosts: cisco_routers
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  tasks:
+    - name: Crear proceso OSPFv2 con router-id fijo (loopback)
+      ios_config:
+        lines:
+          - "router-id {{ loopback0_ipv4.split('/')[0] }}"
+        parents: "router ospf {{ ospf_process_id }}"
+
+    - name: Crear proceso OSPFv3 (IPv6)
+      ios_config:
+        lines:
+          - "router-id {{ loopback0_ipv4.split('/')[0] }}"
+        parents: "ipv6 router ospf {{ ospf_process_id }}"
+
+    - name: Habilitar OSPFv2 en Loopback0
+      ios_config:
+        lines:
+          - "ip ospf {{ ospf_process_id }} area {{ ospf_area }}"
+        parents: "interface Loopback0"
+
+    - name: Habilitar OSPFv3 en Loopback0
+      ios_config:
+        lines:
+          - "ipv6 ospf {{ ospf_process_id }} area {{ ospf_area }}"
+        parents: "interface Loopback0"
+
+    - name: Habilitar OSPFv2 en interfaces punto a punto
+      ios_config:
+        lines:
+          - "ip ospf {{ ospf_process_id }} area {{ ospf_area }}"
+        parents: "interface {{ item.name }}"
+      loop: "{{ interfaces }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Habilitar OSPFv3 en interfaces punto a punto
+      ios_config:
+        lines:
+          - "ipv6 ospf {{ ospf_process_id }} area {{ ospf_area }}"
+        parents: "interface {{ item.name }}"
+      loop: "{{ interfaces }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Guardar configuración
+      ios_config:
+        save_when: modified

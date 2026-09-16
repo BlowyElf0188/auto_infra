@@ -1,0 +1,35 @@
+---
+- name: Endurecer acceso administrativo (ACL de management, banner, timeouts)
+  hosts: cisco_routers
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  tasks:
+    - name: Cifrar contraseñas en texto plano
+      ios_config:
+        lines:
+          - "service password-encryption"
+
+    - name: Crear ACL que solo permite SSH desde la red de management
+      ios_config:
+        lines:
+          - "permit 192.168.100.0 0.0.0.255"
+          - "deny any log"
+        parents: "ip access-list standard MGMT-ONLY"
+
+    - name: Aplicar la ACL a las líneas VTY
+      ios_config:
+        lines:
+          - "access-class MGMT-ONLY in"
+          - "exec-timeout 5 0"
+        parents: "line vty 0 4"
+
+    - name: Configurar banner de advertencia
+      ios_config:
+        lines:
+          - "banner motd ^C ACCESO RESTRINGIDO - Solo personal autorizado. Actividad monitoreada. ^C"
+
+    - name: Guardar configuración
+      ios_config:
+        save_when: modified
