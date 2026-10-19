@@ -1,0 +1,5 @@
+---
+device_hostname: SW6
+vlans: []
+management_svi: {}
+switchports: []

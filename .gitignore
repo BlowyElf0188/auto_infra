@@ -1,0 +1,5 @@
+.DS_Store
+.vault_pass
+group_vars/vault.yml
+backups/
+*.retry

@@ -1,4 +1,4 @@
 ---
 collections:
   - name: cisco.ios
-    version: ">=5.0.0"
+  - name: ansible.netcommon

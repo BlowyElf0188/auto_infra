@@ -1,0 +1,35 @@
+---
+- name: Validar conectividad IPv4 y configuración base
+  hosts: all
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  tasks:
+    - name: Mostrar resumen de interfaces
+      cisco.ios.ios_command:
+        commands:
+          - show ip interface brief
+      register: interfaces_result
+
+    - name: Mostrar interfaces
+      ansible.builtin.debug:
+        var: interfaces_result.stdout_lines
+
+- name: Validar rutas y HSRP de routers
+  hosts: cisco_routers
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  tasks:
+    - name: Consultar rutas estáticas y HSRP
+      cisco.ios.ios_command:
+        commands:
+          - show ip route static
+          - show standby brief
+      register: router_validation
+
+    - name: Mostrar validación del router
+      ansible.builtin.debug:
+        var: router_validation.stdout_lines

@@ -1,0 +1,20 @@
+---
+# Este playbook no sustituye el bootstrap por consola.
+# Ejecutarlo solo cuando todos los equipos ya respondan por SSH.
+- name: Verificar acceso inicial por SSH
+  hosts: all
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  tasks:
+    - name: Consultar versión e interfaces
+      cisco.ios.ios_command:
+        commands:
+          - show version
+          - show ip interface brief
+      register: bootstrap_check
+
+    - name: Mostrar resumen de acceso
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} está disponible por SSH en {{ ansible_host }}"

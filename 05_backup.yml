@@ -1,0 +1,40 @@
+---
+- name: Respaldar configuraciones y cifrarlas
+  hosts: all
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  vars:
+    backup_dir: "{{ playbook_dir }}/backups/{{ lookup('pipe', 'date +%Y-%m-%d_%H%M%S') }}"
+
+  tasks:
+    - name: Descargar running config
+      cisco.ios.ios_config:
+        backup: true
+        backup_options:
+          dir_path: "{{ backup_dir }}"
+          filename: "{{ inventory_hostname }}.cfg"
+
+    - name: Cifrar respaldo con Ansible Vault AES 256
+      ansible.builtin.command:
+        cmd: >-
+          ansible-vault encrypt {{ backup_dir }}/{{ inventory_hostname }}.cfg
+          --vault-password-file {{ playbook_dir }}/.vault_pass
+      delegate_to: localhost
+      changed_when: true
+
+    - name: Generar hash SHA 256 del respaldo cifrado
+      ansible.builtin.command:
+        cmd: >-
+          shasum -a 256 {{ backup_dir }}/{{ inventory_hostname }}.cfg
+      delegate_to: localhost
+      register: backup_hash
+      changed_when: false
+
+    - name: Guardar hash junto al respaldo
+      ansible.builtin.copy:
+        content: "{{ backup_hash.stdout }}\n"
+        dest: "{{ backup_dir }}/{{ inventory_hostname }}.cfg.sha256"
+        mode: "0600"
+      delegate_to: localhost

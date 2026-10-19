@@ -1,0 +1,33 @@
+---
+- name: Configurar routers IPv4 y rutas estáticas
+  hosts: cisco_routers
+  gather_facts: false
+  collections:
+    - cisco.ios
+
+  tasks:
+    - name: Configurar nombre y dominio
+      cisco.ios.ios_config:
+        lines:
+          - "hostname {{ device_hostname }}"
+          - no ip domain-lookup
+          - "ip domain-name {{ domain_name }}"
+
+    - name: Configurar interfaces IPv4
+      cisco.ios.ios_config:
+        parents: "interface {{ item.name }}"
+        lines:
+          - "description {{ item.description | default('CONFIGURADO_POR_ANSIBLE') }}"
+          - "ip address {{ item.address }} {{ item.mask }}"
+          - no shutdown
+      loop: "{{ interfaces }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Configurar rutas estáticas
+      cisco.ios.ios_config:
+        lines:
+          - "ip route {{ item.network }} {{ item.mask }} {{ item.next_hop }}{{ (' ' ~ item.distance) if item.distance is defined else '' }}"
+      loop: "{{ static_routes }}"
+      loop_control:
+        label: "{{ item.network }}/{{ item.mask }} vía {{ item.next_hop }}"

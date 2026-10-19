@@ -1,0 +1,4 @@
+---
+# Copiar como group_vars/vault.yml y cifrar con ansible-vault.
+vault_admin_password: "CAMBIAR_ESTA_CLAVE"
+vault_enable_password: "CAMBIAR_ESTA_CLAVE"

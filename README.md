@@ -1,95 +1,88 @@
-# Automatización de red — Ansible + EVE-NG (10 routers, malla parcial)
+# Auto Infra
 
-## 1. Instalar Ansible y la colección de Cisco en Ubuntu
+Automatización de seis routers Cisco L3 y seis switches Cisco L2 en EVE-NG.
+El alcance usa IPv4, rutas estáticas, HSRP, SSH, ACLs y respaldos. No usa IPv6,
+OSPF ni MSTP.
 
-```bash
-sudo apt update
-sudo apt install -y python3-pip
-pip3 install ansible --break-system-packages
-ansible-galaxy collection install -r requirements.yml
-```
+## Antes de ejecutar Ansible
 
-## 2. Bootstrap manual (una sola vez)
+1. Conectar una interfaz de gestión de cada equipo a la Cloud de EVE-NG.
+2. Aplicar por consola el bootstrap de SSH y una IP de gestión a cada equipo.
+3. Actualizar las IPs de gestión en `inventory.yml`.
+4. Copiar `group_vars/vault.yml.example` como `group_vars/vault.yml` y reemplazar
+   las claves de ejemplo.
+5. Crear el archivo local `.vault_pass` con la contraseña elegida para Ansible Vault.
+6. Instalar dependencias: `ansible-galaxy collection install -r requirements.yml`.
 
-Antes de usar Ansible, cada router necesita SSH habilitado. Sigue
-`00_bootstrap_manual.md` y aplica el bloque de configuración a los 10
-routers por consola en EVE-NG.
+## Único punto de edición de la topología
 
-## 3. Crear el vault con la contraseña de los routers
+Completar únicamente los archivos de `host_vars/`:
 
-```bash
-echo "mi-clave-secreta-del-vault" > .vault_pass
-chmod 600 .vault_pass
-ansible-vault create group_vars/vault.yml --vault-password-file .vault_pass
-```
+- Routers: `interfaces`, `static_routes` y `hsrp_groups`.
+- Switches: `vlans`, `management_svi` y `switchports`.
 
-Dentro de `vault.yml` escribe:
+Ejemplo para un router:
 
 ```yaml
-vault_admin_password: "Admin123!"
+interfaces:
+  - name: GigabitEthernet0/1
+    description: ENLACE_R1_A_R3
+    address: 10.10.2.1
+    mask: 255.255.255.252
+static_routes:
+  - network: 10.10.30.0
+    mask: 255.255.255.0
+    next_hop: 10.10.2.2
+  - network: 10.10.40.0
+    mask: 255.255.255.0
+    next_hop: 10.10.2.2
+    distance: 10
+hsrp_groups:
+  - interface: GigabitEthernet0/2.10
+    group: 10
+    virtual_ip: 10.10.10.1
+    priority: 110
 ```
 
-(usa la misma contraseña que pusiste en el bootstrap manual).
+Ejemplo para un switch:
 
-## 4. Probar conectividad
-
-```bash
-ansible cisco_routers -m ping --vault-password-file .vault_pass
+```yaml
+vlans:
+  - { id: 10, name: DIRECCION }
+  - { id: 20, name: TI }
+  - { id: 99, name: GESTION }
+management_svi:
+  vlan: 99
+  address: 10.10.99.21
+  mask: 255.255.255.0
+  gateway: 10.10.99.1
+switchports:
+  - name: GigabitEthernet0/1
+    lines:
+      - description PC_DIRECCION
+      - switchport mode access
+      - switchport access vlan 10
+      - spanning-tree portfast
+  - name: GigabitEthernet0/2
+    lines:
+      - description TRUNK_A_SW2
+      - switchport mode trunk
+      - switchport trunk allowed vlan 10,20,99
 ```
 
-Si todos responden `pong`, ya puedes automatizar.
+## Ejecución
 
-## 5. Ejecutar todo el playbook maestro
+Primero validar SSH:
 
 ```bash
+ansible-playbook 00_bootstrap.yml --vault-password-file .vault_pass
+```
+
+Después ejecutar por fases o todo el proyecto:
+
+```bash
+ansible-playbook 01_routers.yml --vault-password-file .vault_pass
+ansible-playbook 02_switches.yml --vault-password-file .vault_pass
+ansible-playbook 03_hsrp.yml --vault-password-file .vault_pass
 ansible-playbook site.yml --vault-password-file .vault_pass
 ```
-
-Esto, en orden:
-1. Configura hostname, Loopback0 e interfaces IPv4/IPv6 en los 15 enlaces
-2. Habilita OSPFv2 (IPv4) y OSPFv3 (IPv6) en área 0
-3. Aplica seguridad: ACL de management en VTY, banner, cifrado de contraseñas
-4. Descarga el running-config de cada router y lo cifra con ansible-vault
-
-También puedes correr cada fase por separado:
-
-```bash
-ansible-playbook playbooks/01_interfaces.yml --vault-password-file .vault_pass
-ansible-playbook playbooks/02_ospf.yml --vault-password-file .vault_pass
-ansible-playbook playbooks/03_security.yml --vault-password-file .vault_pass
-ansible-playbook playbooks/04_backup.yml --vault-password-file .vault_pass
-```
-
-## 6. Verificar
-
-```bash
-ansible cisco_routers -m ios_command -a "commands='show ip ospf neighbor'" --vault-password-file .vault_pass
-ansible cisco_routers -m ios_command -a "commands='show ipv6 ospf neighbor'" --vault-password-file .vault_pass
-```
-
-## Estructura del proyecto
-
-```
-ansible-project/
-├── ansible.cfg
-├── inventory.yml              # 10 routers y su IP de management
-├── requirements.yml           # colección cisco.ios
-├── site.yml                   # playbook maestro
-├── 00_bootstrap_manual.md     # paso manual único (habilitar SSH)
-├── group_vars/
-│   └── cisco_routers.yml      # credenciales, OSPF process-id/área
-├── host_vars/
-│   ├── R1.yml ... R10.yml     # hostname, loopback, interfaces por router
-├── playbooks/
-│   ├── 01_interfaces.yml
-│   ├── 02_ospf.yml
-│   ├── 03_security.yml
-│   └── 04_backup.yml
-└── backups/                   # se crea automáticamente, cifrado
-```
-
-## Direccionamiento
-
-- Enlaces punto a punto: `10.0.<N>.0/30` (IPv4) y `2001:db8:<N>::/64` (IPv6), N = 1 a 15
-- Loopback0: `10.255.255.<router>/32` y `2001:db8:ffff::<router>/128`
-- Management: `192.168.100.0/24` (R1 = .11 ... R10 = .20)
